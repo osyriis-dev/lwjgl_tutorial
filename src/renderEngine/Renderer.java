@@ -9,6 +9,9 @@ import shaders.StaticShader;
 import textures.ModelTexture;
 import toolbox.Maths;
 
+import java.util.List;
+import java.util.Map;
+
 public class Renderer {
 
     //Field of view
@@ -19,9 +22,13 @@ public class Renderer {
     private static final float FAR_PLANE = 1000;
 
     private Matrix4f projectionMatrix;
+    private StaticShader shader;
 
     public Renderer(StaticShader shader) {
 
+        this.shader = shader;
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glCullFace(GL11.GL_BACK);
         createProjectionMatrix();
         shader.start();
         shader.loadProjectionMatrix(projectionMatrix);
@@ -37,9 +44,25 @@ public class Renderer {
 
     }
 
-    public void render(Entity entity, StaticShader shader) {
+    public void render(Map<TexturedModel, List<Entity>> entities) {
 
-        TexturedModel model = entity.getModel();
+        for(TexturedModel model: entities.keySet()) {
+
+            prepareTexturedModel(model);
+            List<Entity> batch = entities.get(model);
+            for(Entity entity:batch) {
+
+                prepareInstance(entity);
+                GL11.glDrawElements(GL11.GL_TRIANGLES, model.getRawModel().getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
+            }
+            unbindTexturedModel();
+
+        }
+
+    }
+
+    private void prepareTexturedModel(TexturedModel model) {
+
         RawModel rawModel = model.getRawModel();
         // 1. bind del VAO che voglio usare
         GL30.glBindVertexArray(rawModel.getVaoID());
@@ -47,10 +70,7 @@ public class Renderer {
         GL20.glEnableVertexAttribArray(0);
         GL20.glEnableVertexAttribArray(1);
         GL20.glEnableVertexAttribArray(2);
-        // creo una transformation matrix
-        Matrix4f transformationMatrix = Maths.createTransformationMatrix(entity.getPosition(), entity.getRotX(),
-                entity.getRotY(), entity.getRotZ(), entity.getScale());
-        shader.loadTransformationMatrix(transformationMatrix);
+
         ModelTexture texture = model.getTexture();
         shader.loadShineVariables(texture.getShineDamper(), texture.getReflectivity());
 
@@ -58,14 +78,10 @@ public class Renderer {
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture().getTextureId());
 
-        // 3. faccio il render della lista
-        // SENZA INDEXBUFFER in ordine: cosa voglio disegnare, da dove devo iniziare nella lista e la lunghezza della lista
-        // GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, model.getVertexCount());
-        // Con l'uso dell'IndexBuffer cambia il modo in cui faccio il render dell'immagine
-        // in ordine: cosa voglio disegnare, il numero di vertici da disegnare, il tipo di dato che gli passo e
-        // da dove devo iniziare nella lista
-        GL11.glDrawElements(GL11.GL_TRIANGLES, rawModel.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
-        // 4. disabilito la attribute list
+    }
+
+    private void unbindTexturedModel() {
+
         GL20.glDisableVertexAttribArray(0);
         GL20.glDisableVertexAttribArray(1);
         GL20.glDisableVertexAttribArray(2);
@@ -73,6 +89,51 @@ public class Renderer {
         GL30.glBindVertexArray(0);
 
     }
+
+    private void prepareInstance(Entity entity) {
+
+        Matrix4f transformationMatrix = Maths.createTransformationMatrix(entity.getPosition(), entity.getRotX(),
+                entity.getRotY(), entity.getRotZ(), entity.getScale());
+        shader.loadTransformationMatrix(transformationMatrix);
+
+    }
+
+//    public void render(Entity entity, StaticShader shader) {
+//
+//        TexturedModel model = entity.getModel();
+//        RawModel rawModel = model.getRawModel();
+//        // 1. bind del VAO che voglio usare
+//        GL30.glBindVertexArray(rawModel.getVaoID());
+//        // 2. attivo la attribute list(ho messo i dati nella attribute list 0)
+//        GL20.glEnableVertexAttribArray(0);
+//        GL20.glEnableVertexAttribArray(1);
+//        GL20.glEnableVertexAttribArray(2);
+//        // creo una transformation matrix
+//        Matrix4f transformationMatrix = Maths.createTransformationMatrix(entity.getPosition(), entity.getRotX(),
+//                entity.getRotY(), entity.getRotZ(), entity.getScale());
+//        shader.loadTransformationMatrix(transformationMatrix);
+//        ModelTexture texture = model.getTexture();
+//        shader.loadShineVariables(texture.getShineDamper(), texture.getReflectivity());
+//
+//        // Carico la texture
+//        GL13.glActiveTexture(GL13.GL_TEXTURE0);
+//        GL11.glBindTexture(GL11.GL_TEXTURE_2D, model.getTexture().getTextureId());
+//
+//        // 3. faccio il render della lista
+//        // SENZA INDEXBUFFER in ordine: cosa voglio disegnare, da dove devo iniziare nella lista e la lunghezza della lista
+//        // GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, model.getVertexCount());
+//        // Con l'uso dell'IndexBuffer cambia il modo in cui faccio il render dell'immagine
+//        // in ordine: cosa voglio disegnare, il numero di vertici da disegnare, il tipo di dato che gli passo e
+//        // da dove devo iniziare nella lista
+//        GL11.glDrawElements(GL11.GL_TRIANGLES, rawModel.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
+//        // 4. disabilito la attribute list
+//        GL20.glDisableVertexAttribArray(0);
+//        GL20.glDisableVertexAttribArray(1);
+//        GL20.glDisableVertexAttribArray(2);
+//        // 5. faccio unbind
+//        GL30.glBindVertexArray(0);
+//
+//    }
 
     private void createProjectionMatrix() {
 
