@@ -53,6 +53,12 @@ public class EntityRenderer {
         GL20.glEnableVertexAttribArray(2);
 
         ModelTexture texture = model.getTexture();
+
+        if(texture.isHasTransparency()) {
+            MasterRenderer.disableCulling();
+        }
+
+        shader.loadFakeLightingVariable(texture.isUseFakeLighting());
         shader.loadShineVariables(texture.getShineDamper(), texture.getReflectivity());
 
         // Carico la texture
@@ -62,7 +68,7 @@ public class EntityRenderer {
     }
 
     private void unbindTexturedModel() {
-
+        MasterRenderer.enableCulling();
         GL20.glDisableVertexAttribArray(0);
         GL20.glDisableVertexAttribArray(1);
         GL20.glDisableVertexAttribArray(2);

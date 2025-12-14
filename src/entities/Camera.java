@@ -9,7 +9,7 @@ public class Camera {
     //quanto è bassa la camera
     private float pitch = 10;
     //quanto a destra e sinistra punta
-    private float yaw = 100;
+    private float yaw;
     //quanto è inclinata da un lato
     private float roll;
 
